@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 极速绘画</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; text-align: center; }
+        input { width: 70%; padding: 10px; font-size: 16px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #f6821f; color: white; border: none; border-radius: 4px;}
+        button:disabled { background-color: #ccc; }
+        #result { margin-top: 20px; }
+        img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .loading { color: #666; display: none; }
+    </style>
+</head>
+<body>
+
+    <h1>Cloudflare AI 绘画</h1>
+    <p>使用 Stable Diffusion XL Lightning 模型</p>
+
+    <div>
+        <input type="text" id="prompt" placeholder="描述你想画的内容，例如: A cyberpunk cat in neon city" />
+        <button onclick="generateImage()" id="btn">生成图片</button>
+    </div>
+
+    <p id="loading" class="loading">正在绘制中，请稍候 (约 3-5 秒)...</p>
+    
+    <div id="result"></div>
+
+    <script>
+        async function generateImage() {
+            const promptInput = document.getElementById('prompt');
+            const btn = document.getElementById('btn');
+            const loading = document.getElementById('loading');
+            const resultDiv = document.getElementById('result');
+
+            const prompt = promptInput.value;
+            if (!prompt) return alert("请输入提示词");
+
+            // UI 状态更新
+            btn.disabled = true;
+            loading.style.display = 'block';
+            resultDiv.innerHTML = '';
+
+            try {
+                // 发送请求给后端
+                const req = await fetch('/api/draw', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+
+                const data = await req.json();
+
+                if (data.error) throw new Error(data.error);
+
+                // 显示图片
+                const img = document.createElement('img');
+                img.src = data.image;
+                resultDiv.appendChild(img);
+
+            } catch (err) {
+                alert("生成失败: " + err.message);
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
