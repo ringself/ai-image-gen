@@ -34,11 +34,20 @@ export async function onRequestPost(context) {
     console.log(`Original: ${prompt} -> Translated: ${englishPrompt}`); // 可以在后台日志看到
 
     // --- 第2步：使用 SDXL Lightning 生成图片 ---
+    // const imageResponse = await context.env.AI.run(
+    //   "@cf/bytedance/stable-diffusion-xl-lightning",
+    //   {
+    //     prompt: englishPrompt, // 使用优化后的提示词
+    //     num_steps: 4, 
+    //   }
+    // );
+
+    // 新代码 (使用 Flux.1 Schnell):
     const imageResponse = await context.env.AI.run(
-      "@cf/bytedance/stable-diffusion-xl-lightning",
+      "@cf/black-forest-labs/flux-1-schnell", 
       {
-        prompt: englishPrompt, // 使用优化后的提示词
-        num_steps: 4, 
+        prompt: englishPrompt,
+        num_steps: 4, // Flux Schnell 官方建议 4 步即可出高质量图
       }
     );
 
