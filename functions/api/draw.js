@@ -1,18 +1,23 @@
+// 1. 引入 Buffer (必须放在文件最顶部)
+import { Buffer } from 'node:buffer';
+
 export async function onRequestPost(context) {
   try {
-    const { prompt } = await context.request.json();
+    const { prompt, width, height } = await context.request.json();
 
     if (!prompt) {
       return new Response("Missing prompt", { status: 400 });
     }
 
-    // --- 第1步：Llama 3 翻译 (代码保持不变) ---
-    const systemPrompt = `
-      You are a professional prompt engineer for Stable Diffusion. 
-      Your task is to translate the user's input into English (if it's not already) and enhance it with artistic details.
-      Output ONLY the final prompt string.
-    `;
+    // 设置默认值
+    const imgWidth = width || 512;
+    const imgHeight = height || 512;
 
+    // --- Llama 3 翻译 ---
+    const systemPrompt = `
+      You are a professional prompt engineer. 
+      Translate user input to English. Output ONLY the final prompt.
+    `;
     const translationResponse = await context.env.AI.run(
       "@cf/meta/llama-3-8b-instruct", 
       {
@@ -24,36 +29,36 @@ export async function onRequestPost(context) {
     );
     const englishPrompt = translationResponse.response;
 
-    // --- 第2步：Flux.1 绘图 ---
-    const modelId = "@cf/black-forest-labs/flux-1-schnell"; 
-    // const modelId = "@cf/bytedance/stable-diffusion-xl-lightning"; // 也可以随时切回 SDXL
-
+    // --- Flux.1 绘图 ---
     const imageResponse = await context.env.AI.run(
-      modelId,
+      "@cf/black-forest-labs/flux-1-schnell", 
       {
         prompt: englishPrompt,
         num_steps: 4, 
+        width: imgWidth,
+        height: imgHeight
       }
     );
 
-    // --- 第3步：智能处理图片数据 (修复核心) ---
+    // --- 图片数据处理 (性能优化版) ---
     let base64String;
 
-    // 🔍 关键判断：Flux 模型直接返回 image 字段，不需要转换
+    // 情况 A: Flux 模型直接返回 Base64 字符串
     if (imageResponse.image) {
         base64String = imageResponse.image;
     } 
-    // 🔍 兼容旧模型：如果是二进制流，则手动转换
+    // 情况 B: SDXL 或其他模型返回二进制流 (Stream)
     else {
+        // 1. 读取流到 ArrayBuffer
         const binary = await new Response(imageResponse).arrayBuffer();
-        base64String = btoa(
-          new Uint8Array(binary).reduce((data, byte) => data + String.fromCharCode(byte), '')
-        );
+        
+        // 2. [优化点] 使用 Node.js Buffer API 极速转换
+        // 这里的速度比之前的 reduce 拼接快几百倍，且不占用额外内存
+        base64String = Buffer.from(binary).toString('base64');
     }
 
     const dataURI = `data:image/png;base64,${base64String}`;
 
-    // --- 第4步：返回 ---
     return new Response(JSON.stringify({ 
       image: dataURI,
       translatedPrompt: englishPrompt 
@@ -62,6 +67,7 @@ export async function onRequestPost(context) {
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    // 打印详细错误方便排查
+    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), { status: 500 });
   }
 }
