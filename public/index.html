@@ -3,79 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 绘图</title>
+    <title>AI 创意画廊</title>
     <style>
-        /* ... 保留之前的 CSS ... */
         :root {
             --primary-color: #f6821f;
             --bg-color: #f9f9f9;
             --card-bg: #ffffff;
+            --text-color: #333;
+            --border-radius: 12px;
         }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background-color: var(--bg-color); color: #333; }
-        
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;}
-        
-        /* 新增：选择框样式 */
-        select {
-            padding: 12px;
-            font-size: 16px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            outline: none;
-            background: white;
-            min-width: 120px;
-            cursor: pointer;
-        }
-        select:focus { border-color: var(--primary-color); }
 
-        input { flex: 1; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; outline: none; min-width: 200px;}
-        button { padding: 12px 24px; font-size: 16px; cursor: pointer; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; white-space: nowrap;}
-        
-        /* ... 保留之前的 CSS (main-display, history 等) ... */
-        .status-bar { text-align: center; margin-bottom: 20px; color: #666; font-size: 14px;}
-        #main-display { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; min-height: 300px; }
-        #main-display img { max-width: 100%; border-radius: 8px; margin-top: 15px;}
-        .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 20px;}
-        .history-card img { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; cursor: pointer;}
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            max-width: 900px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+        }
+
+        h1 { text-align: center; margin-bottom: 30px; font-weight: 700; color: #222; }
+
+        /* 输入区域 */
+        .input-group { 
+            display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; 
+            background: white; padding: 10px; border-radius: var(--border-radius);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        select {
+            padding: 12px; font-size: 15px; border: 1px solid #eee; border-radius: 8px;
+            background: #f8f8f8; outline: none; cursor: pointer; min-width: 130px;
+        }
+
+        input { 
+            flex: 1; padding: 12px; font-size: 15px; border: 1px solid #eee; 
+            border-radius: 8px; background: #f8f8f8; outline: none; min-width: 200px;
+            transition: all 0.2s;
+        }
+        input:focus, select:focus { border-color: var(--primary-color); background: white; }
+
+        button { 
+            padding: 12px 28px; font-size: 16px; font-weight: 600; cursor: pointer; 
+            background-color: var(--primary-color); color: white; border: none; 
+            border-radius: 8px; transition: opacity 0.2s, transform 0.1s; white-space: nowrap;
+        }
+        button:hover:not(:disabled) { opacity: 0.9; }
+        button:active:not(:disabled) { transform: scale(0.98); }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* 状态条 */
+        .status-bar { text-align: center; margin-bottom: 25px; height: 20px; font-size: 14px; color: #666; }
+
+        /* 主展示区 */
+        #main-display { 
+            background: var(--card-bg); padding: 25px; border-radius: var(--border-radius); 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06); text-align: center; min-height: 350px; 
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+        }
+        #main-display img { 
+            max-width: 100%; max-height: 700px; border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 15px;
+        }
+
+        .prompt-box {
+            background: #f0f7ff; padding: 15px; border-radius: 8px; font-size: 14px; 
+            color: #444; width: 100%; box-sizing: border-box; text-align: left; 
+            border-left: 4px solid var(--primary-color); margin-bottom: 20px; line-height: 1.5;
+        }
+
+        /* 历史记录区 */
+        .history-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-top: 50px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; 
+        }
+        .history-grid { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; 
+        }
+
+        .history-card { 
+            position: relative; /* 关键：为了定位删除按钮 */
+            background: white; border-radius: 8px; overflow: hidden; 
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; 
+            border: 1px solid #eee; aspect-ratio: 1; 
+        }
+        .history-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+        .history-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        /* 单个删除按钮样式 */
+        .delete-card-btn {
+            position: absolute; top: 5px; right: 5px;
+            width: 24px; height: 24px; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9); border: 1px solid #eee;
+            color: #ff4d4f; font-size: 18px; line-height: 20px;
+            text-align: center; cursor: pointer;
+            opacity: 0; transition: all 0.2s; z-index: 10; padding: 0;
+            font-weight: bold;
+        }
+        /* 鼠标悬停显示按钮 */
+        .history-card:hover .delete-card-btn { opacity: 1; transform: scale(1.1); }
+        /* 手机端默认显示稍浅一点，避免找不到 */
+        @media (max-width: 600px) { .delete-card-btn { opacity: 0.8; } }
+        .delete-card-btn:hover { background: #ff4d4f; color: white; border-color: #ff4d4f; }
+
+        .clear-btn { 
+            background: transparent; color: #888; border: 1px solid #ddd; 
+            padding: 6px 12px; font-size: 12px; border-radius: 4px;
+        }
+        .clear-btn:hover { color: #d9534f; border-color: #d9534f; background: #fff5f5; }
+
+        @keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadein 0.4s ease-out; }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align: center;">🎨 AI 创意画廊 (省流模式)</h1>
+    <h1>🎨 AI 创意工坊</h1>
 
     <div class="input-group">
-        <!-- 新增：尺寸选择器 -->
-        <select id="size-select">
+        <select id="size-select" title="选择图片比例和尺寸">
             <option value="512x512">方形 1:1 (512px)</option>
             <option value="640x360">宽屏 16:9 (640px)</option>
             <option value="360x640">手机 9:16 (360px)</option>
-            <option value="512x384">横向 4:3 (512px)</option>
-            <option value="1024x1024">高清 1:1 (慎用)</option>
+            <option value="512x384">画幅 4:3 (512px)</option>
+            <option value="1024x1024">高清 1:1 (高消耗)</option>
         </select>
-
-        <input type="text" id="prompt" placeholder="描述你的创意..." />
-        <button onclick="handleGenerate()" id="btn">生成</button>
+        <input type="text" id="prompt" placeholder="在此输入你的创意（支持中文）..." />
+        <button onclick="handleGenerate()" id="btn">立即生成</button>
     </div>
 
-    <div class="status-bar" id="status">默认使用 512px 分辨率以节省消耗</div>
+    <div class="status-bar" id="status">准备就绪，请选择尺寸并输入提示词</div>
 
     <div id="main-display">
-        <p style="color: #ccc;">生成的图片将在这里显示</p>
+        <div style="color: #ccc; display: flex; flex-direction: column; align-items: center;">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ddd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            <p style="margin-top: 10px;">生成的图片将展示在这里</p>
+        </div>
     </div>
 
-    <!-- 历史记录区域 (代码复用之前的，此处省略部分细节) -->
-    <div style="margin-top: 40px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-        <h3>📜 历史记录 <button onclick="clearHistory()" style="font-size: 12px; padding: 5px 10px; background: transparent; color: #666; border: 1px solid #ddd;">清空</button></h3>
+    <div class="history-header">
+        <h3 style="margin: 0;">📜 历史画廊</h3>
+        <button class="clear-btn" onclick="clearHistory()">清空全部</button>
     </div>
+    
     <div id="history-gallery" class="history-grid"></div>
 
     <script>
         const MAX_HISTORY = 12;
-        let historyData = JSON.parse(localStorage.getItem('ai_images_history')) || [];
+        let historyData = [];
+        try {
+            historyData = JSON.parse(localStorage.getItem('ai_images_history')) || [];
+        } catch (e) {
+            console.error("读取历史失败", e);
+            historyData = [];
+        }
 
         const ui = {
             input: document.getElementById('prompt'),
-            select: document.getElementById('size-select'), // 获取下拉框
+            select: document.getElementById('size-select'),
             btn: document.getElementById('btn'),
             status: document.getElementById('status'),
             main: document.getElementById('main-display'),
@@ -86,83 +171,129 @@
 
         async function handleGenerate() {
             const prompt = ui.input.value.trim();
-            if (!prompt) return alert("请输入提示词");
+            if (!prompt) return alert("请先输入提示词！");
 
-            // 获取选中的尺寸
-            const sizeStr = ui.select.value; // 例如 "512x512"
+            const sizeStr = ui.select.value;
             const [width, height] = sizeStr.split('x').map(Number);
 
             setLoading(true);
             
             try {
-                // 发送 prompt 以及 width, height 给后端
                 const req = await fetch('/api/draw', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        prompt: prompt,
-                        width: width,
-                        height: height
-                    })
+                    body: JSON.stringify({ prompt, width, height })
                 });
 
-                ui.status.innerText = "优化完成，正在绘制...";
-                
+                ui.status.innerText = "✨ AI 正在努力绘制中 (Flux)...";
                 const data = await req.json();
+
                 if (data.error) throw new Error(data.error);
 
                 const newRecord = {
-                    id: Date.now(),
+                    id: Date.now(), // 唯一ID用于删除
                     userPrompt: prompt,
-                    aiPrompt: data.translatedPrompt,
+                    aiPrompt: data.translatedPrompt || 'AI 未返回优化提示词',
                     image: data.image,
+                    size: sizeStr,
                     time: new Date().toLocaleTimeString()
                 };
 
                 showMainImage(newRecord);
                 saveToHistory(newRecord);
                 
-                ui.status.innerText = `✨ 生成成功 (${width}x${height})！`;
+                ui.status.innerText = `✅ 生成成功！(${sizeStr})`;
 
             } catch (err) {
-                ui.status.innerText = "❌ 出错了";
-                alert(err.message);
+                ui.status.innerText = "❌ 生成失败";
+                let msg = err.message;
+                if(msg.includes("500")) msg = "服务器繁忙，请稍后重试";
+                alert("出错啦: " + msg);
             } finally {
                 setLoading(false);
             }
         }
 
-        // ... showMainImage, saveToHistory, renderHistory, clearHistory 等函数保持之前的逻辑不变 ...
-        // 为了篇幅简洁，这里不再重复粘贴，请保留你上一步已经写好的这些函数
         function showMainImage(record) {
-             ui.main.innerHTML = `<img src="${record.image}" style="max-height:500px">`;
+            ui.main.innerHTML = `
+                <div class="fade-in" style="width: 100%">
+                    <div class="prompt-box">
+                        <div style="margin-bottom: 6px;"><strong style="color: #333;">输入:</strong> ${record.userPrompt}</div>
+                        <div style="font-size: 13px; color: #666; border-top: 1px dashed #ddd; padding-top: 6px;">
+                            <strong style="color: var(--primary-color);">AI优化:</strong> ${record.aiPrompt}
+                        </div>
+                    </div>
+                    <img src="${record.image}" alt="Generated Art">
+                    <div style="margin-top: 12px; font-size: 12px; color: #999;">时间: ${record.time} · 尺寸: ${record.size || '未知'}</div>
+                </div>
+            `;
         }
+
         function saveToHistory(record) {
             historyData.unshift(record);
-            if(historyData.length > MAX_HISTORY) historyData.pop();
+            if (historyData.length > MAX_HISTORY) historyData.pop();
             localStorage.setItem('ai_images_history', JSON.stringify(historyData));
             renderHistory();
         }
+
         function renderHistory() {
             ui.gallery.innerHTML = '';
+            if (historyData.length === 0) {
+                ui.gallery.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #ddd; padding: 20px;">暂无历史记录</div>';
+                return;
+            }
+
             historyData.forEach(item => {
-                const img = document.createElement('img');
-                img.src = item.image;
-                img.onclick = () => showMainImage(item);
-                const div = document.createElement('div');
-                div.className = 'history-card';
-                div.appendChild(img);
-                ui.gallery.appendChild(div);
+                const card = document.createElement('div');
+                card.className = 'history-card fade-in';
+                // 整个卡片点击查看大图
+                card.onclick = () => {
+                    showMainImage(item);
+                    ui.status.innerText = `📂 已加载历史: ${item.userPrompt}`;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+
+                card.innerHTML = `
+                    <!-- 删除按钮 (点击时阻止冒泡) -->
+                    <button class="delete-card-btn" onclick="deleteSingleItem(${item.id}, event)" title="删除这张">×</button>
+                    <img src="${item.image}" loading="lazy" alt="thumb">
+                `;
+                ui.gallery.appendChild(card);
             });
         }
-        function clearHistory() {
-            localStorage.removeItem('ai_images_history');
-            historyData = [];
+
+        // --- 新增：删除单个图片的函数 ---
+        function deleteSingleItem(id, event) {
+            // 关键：阻止事件冒泡，防止触发 card.onclick (查看大图)
+            event.stopPropagation();
+            
+            if(!confirm('确定要删除这张图片吗？')) return;
+
+            // 过滤掉对应ID的图片
+            historyData = historyData.filter(item => item.id !== id);
+            
+            // 更新本地存储和UI
+            localStorage.setItem('ai_images_history', JSON.stringify(historyData));
             renderHistory();
         }
+
+        function clearHistory() {
+            if (!confirm('确定要清空所有历史图片吗？')) return;
+            historyData = [];
+            localStorage.removeItem('ai_images_history');
+            renderHistory();
+            ui.main.innerHTML = `<div style="color: #ccc; display: flex; flex-direction: column; align-items: center;"><p>记录已清空</p></div>`;
+            ui.status.innerText = "🗑️ 历史记录已清空";
+        }
+
         function setLoading(isLoading) {
             ui.btn.disabled = isLoading;
-            ui.btn.innerText = isLoading ? "生成中..." : "生成";
+            ui.btn.innerText = isLoading ? "生成中..." : "立即生成";
+            ui.input.disabled = isLoading;
+            ui.select.disabled = isLoading;
+            if(isLoading) {
+                ui.main.innerHTML = `<div style="color: var(--primary-color);"><p>🎨 正在绘制...</p><small style="color: #999;">(Flux 模型通常需要 3-5 秒)</small></div>`;
+            }
         }
     </script>
 </body>
